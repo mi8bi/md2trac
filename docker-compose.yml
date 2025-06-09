@@ -1,0 +1,31 @@
+services:
+  md2trac:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: md2trac:latest
+    container_name: md2trac-app
+    restart: unless-stopped
+
+    volumes:
+      - ./files:/workspace
+
+    environment:
+      - TZ=Asia/Tokyo
+      - LANG=C.UTF-8
+
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      test: ["CMD", "md2trac", "--help"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
