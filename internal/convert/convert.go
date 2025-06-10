@@ -6,96 +6,148 @@ import (
 	"strings"
 )
 
-func MdToTrac(input string) string {
-	// バックスラッシュエスケープの処理（最初に実行）
-	input = strings.ReplaceAll(input, `\*`, "ESCAPED_ASTERISK")
-	input = strings.ReplaceAll(input, `\_`, "ESCAPED_UNDERSCORE")
-	input = strings.ReplaceAll(input, `\~`, "ESCAPED_TILDE")
+type codeBlock struct {
+	placeholder string
+	content     string
+}
 
-	// Table: Markdown → Trac Wiki
+func MdToTrac(input string) string {
+	input = escapeMarkdownSpecials(input)
+	codeBlocks, input := extractAndReplaceCodeBlocks(input)
+	input = convertTables(input)
+	input = convertImages(input)
+	input = convertLinks(input)
+	input = convertHeaders(input)
+	input = convertTextFormatting(input)
+	input = convertLists(input)
+	input = convertBlockquotes(input)
+	input = convertHorizontalRules(input)
+	input = convertFootnotes(input)
+	input = convertBadges(input)
+	input = restoreCodeBlocks(input, codeBlocks)
+	input = unescapeMarkdownSpecials(input)
+	input = normalizeNewlines(input)
+	return strings.TrimSpace(input)
+}
+
+func escapeMarkdownSpecials(input string) string {
+	input = strings.ReplaceAll(input, `\\*`, "ESCAPED_ASTERISK")
+	input = strings.ReplaceAll(input, `\\_`, "ESCAPED_UNDERSCORE")
+	input = strings.ReplaceAll(input, `\\~`, "ESCAPED_TILDE")
+	return input
+}
+
+func unescapeMarkdownSpecials(input string) string {
+	input = strings.ReplaceAll(input, "ESCAPED_ASTERISK", "*")
+	input = strings.ReplaceAll(input, "ESCAPED_UNDERSCORE", "_")
+	input = strings.ReplaceAll(input, "ESCAPED_TILDE", "~")
+	return input
+}
+
+func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
+	var codeBlocks []codeBlock
+	reCodeBlockAll := regexp.MustCompile("(?s)```([a-zA-Z0-9+#-]*)\\n(.*?)\\n?```")
+	idx := 0
+	input = reCodeBlockAll.ReplaceAllStringFunc(input, func(s string) string {
+		m := reCodeBlockAll.FindStringSubmatch(s)
+		lang := m[1]
+		code := m[2]
+		placeholder := fmt.Sprintf("[[[CODEBLOCK_PLACEHOLDER_%d]]]", idx)
+		var content string
+		if lang == "http" {
+			content = "{{{\n#!text\n" + code + "\n}}}"
+		} else if lang == "json" {
+			content = "{{{\n#!javascript\n" + code + "\n}}}"
+		} else if lang != "" {
+			content = "{{{\n#!" + lang + "\n" + code + "\n}}}"
+		} else {
+			content = "{{{\n" + code + "\n}}}"
+		}
+		codeBlocks = append(codeBlocks, codeBlock{placeholder, content})
+		idx++
+		return placeholder
+	})
+	return codeBlocks, input
+}
+
+func restoreCodeBlocks(input string, codeBlocks []codeBlock) string {
+	for _, cb := range codeBlocks {
+		input = strings.ReplaceAll(input, cb.placeholder, cb.content)
+	}
+	return input
+}
+
+func convertTables(input string) string {
 	reTable := regexp.MustCompile(`(?m)((?:\|[^\n]+\|\n?)+)`)
-	input = reTable.ReplaceAllStringFunc(input, func(table string) string {
+	return reTable.ReplaceAllStringFunc(input, func(table string) string {
 		lines := regexp.MustCompile(`\r?\n`).Split(strings.TrimSpace(table), -1)
 		var out string
 		reHeaderSeparator := regexp.MustCompile(`^\|[\s:-]+\|$`)
-
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
-			if line == "" {
+			if line == "" || reHeaderSeparator.MatchString(line) {
 				continue
 			}
-			// ヘッダー区切り行（|----|----|）はスキップ
-			if reHeaderSeparator.MatchString(line) {
-				continue
+			line = strings.TrimPrefix(line, "|")
+			line = strings.TrimSuffix(line, "|")
+			cells := regexp.MustCompile(`\|`).Split(line, -1)
+			for i := range cells {
+				cells[i] = strings.TrimSpace(cells[i])
 			}
-			// 先頭・末尾の|を||に、セル区切り|を||に
-			line = regexp.MustCompile(`^\|`).ReplaceAllString(line, "||")
-			line = regexp.MustCompile(`\|$`).ReplaceAllString(line, "||")
-			line = regexp.MustCompile(`\|`).ReplaceAllString(line, "||")
-			out += line + "\n"
+			out += "|| " + strings.Join(cells, " || ") + " ||\n"
 		}
-		return out
+		return strings.TrimRight(out, "\n")
 	})
+}
 
-	// Image link: [![alt](src)](url) → [url [[Image(src, alt)]]]
-	reImgLink := regexp.MustCompile(`\[\!\[(.*?)\]\((.*?)\)\]\((.*?)\)`)
+func convertImages(input string) string {
+	reImgLink := regexp.MustCompile(`\[!\[(.*?)\]\((.*?)\)\]\((.*?)\)`)
 	input = reImgLink.ReplaceAllString(input, "[$3 [[Image($2, $1)]]]")
+	reImgSimple := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
+	return reImgSimple.ReplaceAllString(input, "[[Image($2, $1)]]")
+}
 
-	// Code block (with or without language) → {{{ ... }}}
-	reCodeBlock := regexp.MustCompile("(?s)```[a-zA-Z0-9+#-]*\\n(.*?)\\n?```")
-	input = reCodeBlock.ReplaceAllString(input, "{{{\n$1\n}}}")
+func convertLinks(input string) string {
+	reLink := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
+	return reLink.ReplaceAllString(input, "[$2 $1]")
+}
 
-	// インラインコード
-	reInlineCode := regexp.MustCompile("`([^`]+)`")
-	input = reInlineCode.ReplaceAllString(input, "`$1`")
-
-	// Header conversion
+func convertHeaders(input string) string {
 	reHeader := regexp.MustCompile(`(?m)^(#{1,6})\s*(.+?)(?:\s*#+\s*)?$`)
-	input = reHeader.ReplaceAllStringFunc(input, func(s string) string {
+	return reHeader.ReplaceAllStringFunc(input, func(s string) string {
 		m := reHeader.FindStringSubmatch(s)
 		level := len(m[1])
 		title := strings.TrimSpace(m[2])
 		eq := strings.Repeat("=", level)
 		return fmt.Sprintf("%s %s %s", eq, title, eq)
 	})
+}
 
-	// 取り消し線
+func convertTextFormatting(input string) string {
 	reStrike := regexp.MustCompile(`~~(.*?)~~`)
 	input = reStrike.ReplaceAllString(input, "~~$1~~")
-
-	// 太字かつ斜体 (***text*** or ___text___)
 	reBoldItalic1 := regexp.MustCompile(`\*\*\*(.*?)\*\*\*`)
 	input = reBoldItalic1.ReplaceAllString(input, "'''''$1'''''")
 	reBoldItalic2 := regexp.MustCompile(`___(.*?)___`)
 	input = reBoldItalic2.ReplaceAllString(input, "'''''$1'''''")
-
-	// Bold (**text** or __text__)
 	reBold1 := regexp.MustCompile(`\*\*(.*?)\*\*`)
 	input = reBold1.ReplaceAllString(input, "'''$1'''")
 	reBold2 := regexp.MustCompile(`__(.*?)__`)
 	input = reBold2.ReplaceAllString(input, "'''$1'''")
-
-	// Italic (*text* or _text_)
 	reItalic1 := regexp.MustCompile(`\*(.*?)\*`)
 	input = reItalic1.ReplaceAllString(input, "''$1''")
 	reItalic2 := regexp.MustCompile(`_(.*?)_`)
 	input = reItalic2.ReplaceAllString(input, "''$1''")
+	reInlineCode := regexp.MustCompile("`([^`]+)`")
+	input = reInlineCode.ReplaceAllString(input, "`$1`")
+	return input
+}
 
-	// Links
-	reLink := regexp.MustCompile(`\[(.*?)\]\((.*?)\)`)
-	input = reLink.ReplaceAllString(input, "[$2 $1]")
-
-	// Images
-	reImg := regexp.MustCompile(`!\[(.*?)\]\((.*?)\)`)
-	input = reImg.ReplaceAllString(input, "[[Image($2, $1)]]")
-
-	// チェックリスト
+func convertLists(input string) string {
 	reCheckboxChecked := regexp.MustCompile(`(?m)^(\s*)[-*]\s+\[x\]\s+(.+)$`)
 	input = reCheckboxChecked.ReplaceAllString(input, "$1 * [X] $2")
 	reCheckboxUnchecked := regexp.MustCompile(`(?m)^(\s*)[-*]\s+\[\s\]\s+(.+)$`)
 	input = reCheckboxUnchecked.ReplaceAllString(input, "$1 * [ ] $2")
-
-	// ネストしたリストの処理
 	reSubUL := regexp.MustCompile(`(?m)^(\s{2,})[-*]\s+(.+)$`)
 	input = reSubUL.ReplaceAllStringFunc(input, func(s string) string {
 		matches := reSubUL.FindStringSubmatch(s)
@@ -103,7 +155,6 @@ func MdToTrac(input string) string {
 		bullet := strings.Repeat(" ", indent) + " *"
 		return bullet + " " + matches[2]
 	})
-
 	reSubOL := regexp.MustCompile(`(?m)^(\s{2,})\d+\.\s+(.+)$`)
 	input = reSubOL.ReplaceAllStringFunc(input, func(s string) string {
 		matches := reSubOL.FindStringSubmatch(s)
@@ -111,57 +162,43 @@ func MdToTrac(input string) string {
 		bullet := strings.Repeat(" ", indent) + " 1."
 		return bullet + " " + matches[2]
 	})
-
-	// Unordered list (通常レベル)
 	reUL := regexp.MustCompile(`(?m)^[-*]\s+(.+)$`)
 	input = reUL.ReplaceAllString(input, " * $1")
-
-	// Ordered list (通常レベル)
 	reOL := regexp.MustCompile(`(?m)^\d+\.\s+(.+)$`)
 	input = reOL.ReplaceAllString(input, " 1. $1")
+	return input
+}
 
-	// 引用の処理
+func convertBlockquotes(input string) string {
 	reQuote := regexp.MustCompile(`(?m)^>\s*(.*)$`)
 	input = reQuote.ReplaceAllString(input, " $1")
-
-	// ネストした引用の処理
 	reNestedQuote := regexp.MustCompile(`(?m)^>\s*>\s*(.*)$`)
 	input = reNestedQuote.ReplaceAllString(input, "  $1")
+	return input
+}
 
-	// 水平線
+func convertHorizontalRules(input string) string {
 	reHR1 := regexp.MustCompile(`(?m)^-{3,}\s*$`)
 	input = reHR1.ReplaceAllString(input, "----")
 	reHR2 := regexp.MustCompile(`(?m)^\*{3,}\s*$`)
 	input = reHR2.ReplaceAllString(input, "----")
+	return input
+}
 
-	// 脚注の処理
+func convertFootnotes(input string) string {
 	reFootnoteRef := regexp.MustCompile(`\[\^([^\]]+)\]`)
 	input = reFootnoteRef.ReplaceAllString(input, "^$1^")
-
-	// 脚注定義の処理
 	reFootnoteDef := regexp.MustCompile(`(?m)^\[\^([^\]]+)\]:\s*(.+)$`)
 	input = reFootnoteDef.ReplaceAllString(input, "[[FootNote($1,$2)]]")
+	return input
+}
 
-	// HTTPヘッダーブロックの処理（特殊なコードブロック形式）
-	reHTTPBlock := regexp.MustCompile("(?s)```http\\n(.*?)\\n```")
-	input = reHTTPBlock.ReplaceAllString(input, "{{{\n#!text\n$1\n}}}")
+func convertBadges(input string) string {
+	reBadge := regexp.MustCompile(`\[!\[([^\]]*)\]\(([^)]+)\)\]\(([^)]+)\)`)
+	return reBadge.ReplaceAllString(input, "[$3 [[Image($2, $1)]]]")
+}
 
-	// JSONコードブロックの処理
-	reJSONBlock := regexp.MustCompile("(?s)```json\\n(.*?)\\n```")
-	input = reJSONBlock.ReplaceAllString(input, "{{{\n#!javascript\n$1\n}}}")
-
-	// バッジ（[![...](...)](...)形式）の処理
-	reBadge := regexp.MustCompile(`\[\!\[([^\]]*)\]\(([^)]+)\)\]\(([^)]+)\)`)
-	input = reBadge.ReplaceAllString(input, "[$3 [[Image($2, $1)]]]")
-
-	// エスケープされた文字を元に戻す
-	input = strings.ReplaceAll(input, "ESCAPED_ASTERISK", "*")
-	input = strings.ReplaceAll(input, "ESCAPED_UNDERSCORE", "_")
-	input = strings.ReplaceAll(input, "ESCAPED_TILDE", "~")
-
-	// 複数の連続する空行を1つの空行に変換
+func normalizeNewlines(input string) string {
 	reMultipleNewlines := regexp.MustCompile(`\n{3,}`)
-	input = reMultipleNewlines.ReplaceAllString(input, "\n\n")
-
-	return strings.TrimSpace(input)
+	return reMultipleNewlines.ReplaceAllString(input, "\n\n")
 }
