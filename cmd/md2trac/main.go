@@ -38,7 +38,8 @@ os.Exit(1)
 	// 入力ファイルの読み込み
 	data, err := os.ReadFile(infile)
 	if err != nil {
-		fmt.Printf("Error reading input file '%s': %v\n", infile, err)
+fmt.Fprintf(os.Stderr, "Error reading input file '%s': %v\n", infile, err)
+os.Exit(1)
 		return
 	}
 
