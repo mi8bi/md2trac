@@ -30,7 +30,8 @@ func main() {
 
 	// 入力ファイルの存在確認
 	if _, err := os.Stat(infile); os.IsNotExist(err) {
-		fmt.Printf("Error: Input file '%s' does not exist\n", infile)
+fmt.Fprintf(os.Stderr, "Error: Input file '%s' does not exist\n", infile)
+os.Exit(1)
 		return
 	}
 
