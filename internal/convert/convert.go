@@ -12,6 +12,10 @@ type codeBlock struct {
 }
 
 func MdToTrac(input string) string {
+	// すべての改行をLFに統一
+	input = strings.ReplaceAll(input, "\r\n", "\n")
+	input = strings.ReplaceAll(input, "\r", "\n")
+
 	input = escapeMarkdownSpecials(input)
 	codeBlocks, input := extractAndReplaceCodeBlocks(input)
 	input = convertTables(input)

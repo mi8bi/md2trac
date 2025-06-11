@@ -57,6 +57,26 @@ func TestMdToTrac(t *testing.T) {
 			expected: "{{{\n#!javascript\nconsole.log('hello');\n}}}",
 		},
 		{
+			name:     "Code block (no language)",
+			input:    "```\nfoo\nbar\n```",
+			expected: "{{{\nfoo\nbar\n}}}",
+		},
+		{
+			name:     "Code block (http)",
+			input:    "```http\nGET /api HTTP/1.1\n```",
+			expected: "{{{\n#!text\nGET /api HTTP/1.1\n}}}",
+		},
+		{
+			name:     "Code block (json)",
+			input:    "```json\n{\"a\":1}\n```",
+			expected: "{{{\n#!javascript\n{\"a\":1}\n}}}",
+		},
+		{
+			name:     "Multiple code blocks",
+			input:    "```js\n1\n```\n\n```python\n2\n```",
+			expected: "{{{\n#!js\n1\n}}}\n\n{{{\n#!python\n2\n}}}",
+		},
+		{
 			name:     "Unordered list",
 			input:    "- Item 1\n- Item 2\n- Item 3",
 			expected: " * Item 1\n * Item 2\n * Item 3",
@@ -95,6 +115,16 @@ func TestMdToTrac(t *testing.T) {
 			name:     "Multiple formatting",
 			input:    "**bold** and *italic* and `code`",
 			expected: "'''bold''' and ''italic'' and `code`",
+		},
+		{
+			name:     "Code block (javascript, hello world)",
+			input:    "```javascript\nfunction hello() {\n    console.log(\"Hello, World!\");\n}\n\nhello();\n```",
+			expected: "{{{\n#!javascript\nfunction hello() {\n    console.log(\"Hello, World!\");\n}\n\nhello();\n}}}",
+		},
+		{
+			name:     "Code block (python, greet)",
+			input:    "```python\ndef greet(name):\n    return f\"こんにちは、{name}さん！\"\n\nprint(greet(\"世界\"))\n```",
+			expected: "{{{\n#!python\ndef greet(name):\n    return f\"こんにちは、{name}さん！\"\n\nprint(greet(\"世界\"))\n}}}",
 		},
 	}
 
