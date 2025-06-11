@@ -60,7 +60,8 @@ os.Exit(1)
 	// 出力ファイルの書き込み
 	err = os.WriteFile(outfile, []byte(result), 0644)
 	if err != nil {
-		fmt.Printf("Error writing output file '%s': %v\n", outfile, err)
+fmt.Fprintf(os.Stderr, "Error writing output file '%s': %v\n", outfile, err)
+os.Exit(1)
 		return
 	}
 
