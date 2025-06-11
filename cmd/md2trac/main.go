@@ -51,7 +51,8 @@ os.Exit(1)
 	outDir := filepath.Dir(outfile)
 	if outDir != "." && outDir != "" {
 		if err := os.MkdirAll(outDir, 0755); err != nil {
-			fmt.Printf("Error creating output directory '%s': %v\n", outDir, err)
+fmt.Fprintf(os.Stderr, "Error creating output directory '%s': %v\n", outDir, err)
+os.Exit(1)
 			return
 		}
 	}
