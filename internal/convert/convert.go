@@ -172,10 +172,11 @@ func convertLists(input string) string {
 }
 
 func convertBlockquotes(input string) string {
-	reQuote := regexp.MustCompile(`(?m)^>\s*(.*)$`)
-	input = reQuote.ReplaceAllString(input, " $1")
-	reNestedQuote := regexp.MustCompile(`(?m)^>\s*>\s*(.*)$`)
-	input = reNestedQuote.ReplaceAllString(input, "  $1")
+reNestedQuote := regexp.MustCompile(`(?m)^>\s*>\s*(.*)$`)
+input = reNestedQuote.ReplaceAllString(input, "  $1")
+
+reQuote := regexp.MustCompile(`(?m)^>\s*(.*)$`)
+input = reQuote.ReplaceAllString(input, " $1")
 	return input
 }
 
