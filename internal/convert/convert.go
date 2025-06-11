@@ -18,13 +18,13 @@ func MdToTrac(input string) string {
 	input = convertImages(input)
 	input = convertLinks(input)
 	input = convertHeaders(input)
+	input = restoreCodeBlocks(input, codeBlocks) // ★ここで復元
 	input = convertTextFormatting(input)
 	input = convertLists(input)
 	input = convertBlockquotes(input)
 	input = convertHorizontalRules(input)
 	input = convertFootnotes(input)
 	input = convertBadges(input)
-	input = restoreCodeBlocks(input, codeBlocks)
 	input = unescapeMarkdownSpecials(input)
 	input = normalizeNewlines(input)
 	return strings.TrimSpace(input)
@@ -82,11 +82,11 @@ func convertTables(input string) string {
 	return reTable.ReplaceAllStringFunc(input, func(table string) string {
 		lines := regexp.MustCompile(`\r?\n`).Split(strings.TrimSpace(table), -1)
 		var out string
-		reHeaderSeparator := regexp.MustCompile(`^\|[\s:-]+\|$`)
+		reHeaderSeparator := regexp.MustCompile(`^\|(?:\s*:?-+:?\s*\|)+\s*$`)
 		for _, line := range lines {
 			line = strings.TrimSpace(line)
 			if line == "" || reHeaderSeparator.MatchString(line) {
-				continue
+				continue // 区切り行をスキップ
 			}
 			line = strings.TrimPrefix(line, "|")
 			line = strings.TrimSuffix(line, "|")
@@ -148,19 +148,17 @@ func convertLists(input string) string {
 	input = reCheckboxChecked.ReplaceAllString(input, "$1 * [X] $2")
 	reCheckboxUnchecked := regexp.MustCompile(`(?m)^(\s*)[-*]\s+\[\s\]\s+(.+)$`)
 	input = reCheckboxUnchecked.ReplaceAllString(input, "$1 * [ ] $2")
-	reSubUL := regexp.MustCompile(`(?m)^(\s{2,})[-*]\s+(.+)$`)
+	reSubUL := regexp.MustCompile(`(?m)^(\s+)[-*]\s+(.+)$`)
 	input = reSubUL.ReplaceAllStringFunc(input, func(s string) string {
 		matches := reSubUL.FindStringSubmatch(s)
-		indent := len(matches[1]) / 2
-		bullet := strings.Repeat(" ", indent) + " *"
-		return bullet + " " + matches[2]
+		indent := matches[1]
+		return indent + "*" + " " + matches[2]
 	})
-	reSubOL := regexp.MustCompile(`(?m)^(\s{2,})\d+\.\s+(.+)$`)
+	reSubOL := regexp.MustCompile(`(?m)^(\s+)\d+\.\s+(.+)$`)
 	input = reSubOL.ReplaceAllStringFunc(input, func(s string) string {
 		matches := reSubOL.FindStringSubmatch(s)
-		indent := len(matches[1]) / 2
-		bullet := strings.Repeat(" ", indent) + " 1."
-		return bullet + " " + matches[2]
+		indent := matches[1]
+		return indent + "1." + " " + matches[2]
 	})
 	reUL := regexp.MustCompile(`(?m)^[-*]\s+(.+)$`)
 	input = reUL.ReplaceAllString(input, " * $1")
