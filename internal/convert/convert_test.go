@@ -37,6 +37,11 @@ func TestMdToTrac(t *testing.T) {
 			expected: "This is ~~strikethrough~~ text",
 		},
 		{
+			name:     "Double underscore",
+			input:    "This is a__test__with double underscores",
+			expected: "This is a__test__with double underscores",
+		},
+		{
 			name:     "Links",
 			input:    "[Google](https://google.com)",
 			expected: "[https://google.com Google]",
