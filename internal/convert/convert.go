@@ -136,8 +136,6 @@ func convertTextFormatting(input string) string {
 	input = reBoldItalic2.ReplaceAllString(input, "'''''$1'''''")
 	reBold1 := regexp.MustCompile(`\*\*(.*?)\*\*`)
 	input = reBold1.ReplaceAllString(input, "'''$1'''")
-	reBold2 := regexp.MustCompile(`\B__(.*?)__\B`)
-	input = reBold2.ReplaceAllString(input, "'''$1'''")
 	reItalic1 := regexp.MustCompile(`\*(.*?)\*`)
 	input = reItalic1.ReplaceAllString(input, "''$1''")
 	reItalic2 := regexp.MustCompile(`_(.*?)_`)
