@@ -123,8 +123,13 @@ func TestMdToTrac(t *testing.T) {
 		},
 		{
 			name:     "Code block (python, greet)",
-			input:    "```python\ndef greet(name):\n    return f\"こんにちは、{name}さん！\"\n\nprint(greet(\"世界\"))\n```",
+			input:    "```python\ndef greet(name):\n    return f\"こんにちは、{name}さん！\"\n\nprint(greet(\"世界\n\"))\n```",
 			expected: "{{{\n#!python\ndef greet(name):\n    return f\"こんにちは、{name}さん！\"\n\nprint(greet(\"世界\"))\n}}}",
+		},
+		{
+			name:     "Code block (html)",
+			input:    "```html\n<html>\n<body>\n<h1>Hello</h1>\n</body>\n</html>\n```",
+			expected: "{{{\n<html>\n<body>\n<h1>Hello</h1>\n</body>\n</html>\n}}}",
 		},
 	}
 

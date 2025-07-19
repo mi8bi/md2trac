@@ -72,6 +72,8 @@ func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
 			content = "{{{\n#!text\n" + code + "\n}}}"
 		} else if lang == "json" {
 			content = "{{{\n#!javascript\n" + code + "\n}}}"
+		} else if lang == "html" {
+			content = "{{{\n" + code + "\n}}}"
 		} else if lang != "" {
 			content = "{{{\n#!" + lang + "\n" + code + "\n}}}"
 		} else {
