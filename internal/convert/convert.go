@@ -68,7 +68,7 @@ func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
 		code := m[2]
 		placeholder := fmt.Sprintf("[[[CODEBLOCK_PLACEHOLDER_%d]]]", idx)
 		var content string
-		if lang == "http" {
+		if lang == "http" || lang == "html" {
 			content = "{{{\n#!text\n" + code + "\n}}}"
 		} else if lang == "json" {
 			content = "{{{\n#!javascript\n" + code + "\n}}}"
