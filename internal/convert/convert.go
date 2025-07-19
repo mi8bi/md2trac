@@ -60,7 +60,7 @@ func unescapeDoubleUnderscores(input string) string {
 
 func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
 	var codeBlocks []codeBlock
-	reCodeBlockAll := regexp.MustCompile("(?s)```([a-zA-Z0-9+#-]*)\\n(.*?)\\n?```")
+	reCodeBlockAll := regexp.MustCompile("(?s)```([a-zA-Z0-9+#-]*)\\n(.*?)```")
 	idx := 0
 	input = reCodeBlockAll.ReplaceAllStringFunc(input, func(s string) string {
 		m := reCodeBlockAll.FindStringSubmatch(s)
