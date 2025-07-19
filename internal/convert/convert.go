@@ -16,6 +16,7 @@ func MdToTrac(input string) string {
 	input = strings.ReplaceAll(input, "\r\n", "\n")
 	input = strings.ReplaceAll(input, "\r", "\n")
 
+	input = escapeDoubleUnderscores(input)
 	input = escapeMarkdownSpecials(input)
 	codeBlocks, input := extractAndReplaceCodeBlocks(input)
 	input = convertTables(input)
@@ -30,6 +31,7 @@ func MdToTrac(input string) string {
 	input = convertFootnotes(input)
 	input = convertBadges(input)
 	input = unescapeMarkdownSpecials(input)
+	input = unescapeDoubleUnderscores(input)
 	input = normalizeNewlines(input)
 	return strings.TrimSpace(input)
 }
@@ -46,6 +48,14 @@ func unescapeMarkdownSpecials(input string) string {
 	input = strings.ReplaceAll(input, "ESCAPED_UNDERSCORE", "_")
 	input = strings.ReplaceAll(input, "ESCAPED_TILDE", "~")
 	return input
+}
+
+func escapeDoubleUnderscores(input string) string {
+	return strings.ReplaceAll(input, "__", "ESCAPED_DOUBLE_UNDERSCORE")
+}
+
+func unescapeDoubleUnderscores(input string) string {
+	return strings.ReplaceAll(input, "ESCAPED_DOUBLE_UNDERSCORE", "__")
 }
 
 func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
