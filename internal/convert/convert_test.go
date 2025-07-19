@@ -72,6 +72,11 @@ func TestMdToTrac(t *testing.T) {
 			expected: "{{{\n#!javascript\n{\"a\":1}\n}}}",
 		},
 		{
+			name:     "Code block (html)",
+			input:    "```html\n<div>Hello</div>\n```",
+			expected: "{{{\n#!text\n<div>Hello</div>\n}}}",
+		},
+		{
 			name:     "Multiple code blocks",
 			input:    "```js\n1\n```\n\n```python\n2\n```",
 			expected: "{{{\n#!js\n1\n}}}\n\n{{{\n#!python\n2\n}}}",
