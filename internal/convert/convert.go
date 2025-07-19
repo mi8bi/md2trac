@@ -60,12 +60,12 @@ func unescapeDoubleUnderscores(input string) string {
 
 func extractAndReplaceCodeBlocks(input string) ([]codeBlock, string) {
 	var codeBlocks []codeBlock
-	reCodeBlockAll := regexp.MustCompile("(?s)```([a-zA-Z0-9+#-]*)\\n(.*?)```")
+	reCodeBlockAll := regexp.MustCompile("(?s)```([a-zA-Z0-9+#-]*)\\n(.*?)\\n?```")
 	idx := 0
 	input = reCodeBlockAll.ReplaceAllStringFunc(input, func(s string) string {
 		m := reCodeBlockAll.FindStringSubmatch(s)
 		lang := m[1]
-		code := m[2]
+		code := strings.TrimSuffix(m[2], "\n")
 		placeholder := fmt.Sprintf("[[[CODEBLOCK_PLACEHOLDER_%d]]]", idx)
 		var content string
 		if lang == "http" {
