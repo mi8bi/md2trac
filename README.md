@@ -4,6 +4,7 @@ A command-line tool to convert Markdown files to Trac wiki format.
 
 [![Build Status](https://github.com/mi8bi/md2trac/actions/workflows/test.yml/badge.svg)](https://github.com/mi8bi/md2trac/actions/workflows/test.yml)
 [![Go Report Card](https://goreportcard.com/badge/github.com/mi8bi/md2trac)](https://goreportcard.com/report/github.com/mi8bi/md2trac)
+[![codecov](https://codecov.io/gh/mi8bi/md2trac/branch/main/graph/badge.svg)](https://codecov.io/gh/mi8bi/md2trac)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Latest Release](https://img.shields.io/github/v/release/mi8bi/md2trac)](https://github.com/mi8bi/md2trac/releases/latest)
 
