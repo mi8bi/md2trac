@@ -1,3 +1,9 @@
+<p align="center">
+  <a href="https://github.com/mi8bi/md2trac">
+    <img src="./assets/ogp.png" alt="MD2TRAC OGP Image">
+  </a>
+</p>
+
 # md2trac
 
 A command-line tool to convert Markdown files to Trac wiki format.
